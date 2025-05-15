@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>嘉嘉的健康追踪助手</title>
+    <style>
+        body {
+            font-family: '微软雅黑', Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+        }
+
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h3 {
+            color: #3498db;
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #34495e;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .result {
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #e8f4f8;
+            border-radius: 10px;
+        }
+
+        .motivation {
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #fff3d9;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 25px;
+            border-collapse: collapse;
+            background-color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f5fafa;
+        }
+
+        .delete-btn {
+            background-color: #e74c3c;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🏋️ 嘉嘉的健康追踪助手</h2>
+        
+        <!-- 输入区域 -->
+        <div class="input-group">
+            <h3>🍽️ 饮食记录</h3>
+            <label>早餐热量 (kcal):</label>
+            <input type="number" id="breakfast" min="0">
+            
+            <label>午餐热量 (kcal):</label>
+            <input type="number" id="lunch" min="0">
+            
+            <label>晚餐热量 (kcal):</label>
+            <input type="number" id="dinner" min="0">
+        </div>
+
+        <div class="input-group">
+            <h3>🏃 运动记录</h3>
+            <label>运动消耗 (kcal):</label>
+            <input type="number" id="exercise" min="0">
+        </div>
+
+        <div class="input-group">
+            <h3>⚖️ 体重记录</h3>
+            <label>当前体重 (kg):</label>
+            <input type="number" id="weight" step="0.1" min="30">
+        </div>
+
+        <button onclick="saveRecord()">保存今日数据</button>
+
+        <!-- 结果显示 -->
+        <div class="result" id="result"></div>
+
+        <!-- 激励语 -->
+        <div class="motivation" id="motivation"></div>
+
+        <!-- 历史记录 -->
+        <h3>📅 历史记录</h3>
+        <table id="recordTable">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>总摄入</th>
+                    <th>总消耗</th>
+                    <th>热量缺口</th>
+                    <th>体重</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- 数据动态插入 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // 初始化时加载存储的数据
+        let records = JSON.parse(localStorage.getItem('healthRecords')) || [];
+        renderTable();
+
+        function saveRecord() {
+            // 获取输入值
+            const inputs = {
+                breakfast: parseFloat(document.getElementById('breakfast').value) || 0,
+                lunch: parseFloat(document.getElementById('lunch').value) || 0,
+                dinner: parseFloat(document.getElementById('dinner').value) || 0,
+                exercise: parseFloat(document.getElementById('exercise').value) || 0,
+                weight: parseFloat(document.getElementById('weight').value)
+            };
+
+            // 计算数据
+            const totalIntake = inputs.breakfast + inputs.lunch + inputs.dinner;
+            const totalBurn = 1400 + inputs.exercise;
+            const deficit = totalBurn - totalIntake;
+            const today = new Date().toLocaleDateString();
+
+            // 检查是否已有当日记录
+            const existingIndex = records.findIndex(r => r.date === today);
+            if (existingIndex >= 0) {
+                records[existingIndex] = { ...inputs, date: today, totalIntake, totalBurn, deficit };
+            } else {
+                records.push({ ...inputs, date: today, totalIntake, totalBurn, deficit });
+            }
+
+            // 保存到本地存储
+            localStorage.setItem('healthRecords', JSON.stringify(records));
+            
+            // 更新界面
+            renderTable();
+            showResult(deficit, inputs.weight);
+            clearInputs();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            records.forEach((record, index) => {
+                const row = `
+                    <tr>
+                        <td>${record.date}</td>
+                        <td>${record.totalIntake}kcal</td>
+                        <td>${record.totalBurn}kcal</td>
+                        <td style="color: ${record.deficit >= 0 ? '#27ae60' : '#e74c3c'}">
+                            ${record.deficit}kcal
+                        </td>
+                        <td>${record.weight ? record.weight.toFixed(1)+'kg' : '-'}</td>
+                        <td>
+                            <button class="delete-btn" onclick="deleteRecord(${index})">删除</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function deleteRecord(index) {
+            records.splice(index, 1);
+            localStorage.setItem('healthRecords', JSON.stringify(records));
+            renderTable();
+        }
+
+        function showResult(deficit, weight) {
+            // 显示计算结果
+            const resultHTML = `
+                <h4>📊 今日数据统计</h4>
+                <p>热量缺口：<strong style="color: ${deficit >= 0 ? '#27ae60' : '#e74c3c'}">${deficit}kcal</strong></p>
+                ${weight ? `<p>当前体重：<strong>${weight.toFixed(1)}kg</strong></p>` : ''}
+            `;
+            document.getElementById('result').innerHTML = resultHTML;
+
+            // 显示激励语
+            const motivation = getMotivation(deficit);
+            document.getElementById('motivation').innerHTML = motivation;
+        }
+
+        function getMotivation(deficit) {
+            const messages = [
+                { condition: d => d >= 500, text: "🚀 俊俊说：你正在创造奇迹！继续保持！", emoji: "🔥" },
+                { condition: d => d >= 200, text: "💪 俊俊说：太棒了！你做得非常好！", emoji: "✨" },
+                { condition: d => d > 0, text: "👍 俊俊说：良好的开始！继续坚持！", emoji: "🌱" },
+                { condition: d => d === 0, text: "⚖️ 俊俊说：完美的平衡！继续保持！", emoji: "🎯" },
+                { condition: d => d < 0, text: "🍎 俊俊说：明天调整饮食，你会做得更好！", emoji: "🌈" }
+            ];
+            
+            const { text, emoji } = messages.find(m => m.condition(deficit)) || 
+                { text: "💡 俊俊说：健康生活贵在坚持！", emoji: "❤️" };
+            
+            return `${emoji} ${text}`;
+        }
+
+        function clearInputs() {
+            // 清空输入框（保留体重）
+            ['breakfast', 'lunch', 'dinner', 'exercise'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+        }
+    </script>
+</body>
+</html>
